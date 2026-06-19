@@ -4,23 +4,35 @@
 
 public interface ITopicGrain : IGrainWithStringKey
 {
-    Task Subscribe(ISensorGrain sensor);
-    Task Unsubscribe(ISensorGrain sensor);
-    Task Publish(SensorReading reading);
+    Task Subscribe(IAddressable grain);
+    Task Unsubscribe(IAddressable grain);
+    Task Publish(AtlasElementProjection reading);
 }
 
 public sealed class TopicState
 {
-    public HashSet<string> SubscriberIds { get; set; } = [];
+    public HashSet<long> SectorIds { get; set; } = [];
+    public HashSet<long> HydrantIds { get; set; } = [];
+    public HashSet<long> CheckpointIds { get; set; } = [];
+
+    public void AddSubscription()
+    {
+
+    }
 }
 
 public sealed class TopicGrain : Grain, ITopicGrain
 {
     private readonly HashSet<ISensorGrain> _subscribers = [];
+    private readonly IState<TopicState> _state;
 
     public Task Subscribe(ISensorGrain sensor)
     {
         _subscribers.Add(sensor);
+
+        if (!_state.State.Exist(sensor.Id))
+            _state.State.Add(sensor.Id)
+
         return Task.CompletedTask;
     }
 
@@ -46,4 +58,61 @@ public sealed class TopicGrain : Grain, ITopicGrain
     }
 }
 
+// ====================
+public interface ISectorGrain : IGrainWithIntegerKey { }
+public interface IHydrantGrain : IGrainWithIntegerKey { }
+public interface ICheckpointGrain : IGrainWithIntegerKey { }
+
+public sealed class TopicState
+{
+    public HashSet<long> SectorIds { get; set; } = [];
+    public HashSet<long> HydrantIds { get; set; } = [];
+    public HashSet<long> CheckpointIds { get; set; } = [];
+
+    public void AddSubscription(IAddressable grain)
+    {
+        switch (grain)
+        {
+            case ISectorGrain sector:
+                SectorIds.Add(sector.GetPrimaryKeyLong());
+                break;
+
+            case IHydrantGrain hydrant:
+                HydrantIds.Add(hydrant.GetPrimaryKeyLong());
+                break;
+
+            case ICheckpointGrain checkpoint:
+                CheckpointIds.Add(checkpoint.GetPrimaryKeyLong());
+                break;
+
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported subscription grain type: {grain.GetType().Name}");
+        }
+    }
+}
+
+
+
+
+
+public sealed class SectorGrain : Grain, ISectorGrain
+{
+    public async Task SubscribeToTopic(long topicId, string topicName)
+    {
+        var topic = GrainFactory.GetGrain<ITopicGrain>(
+            primaryKey: topicId,
+            keyExtension: topicName);
+
+        var self = this.AsReference<ISectorGrain>();
+
+        await topic.Subscribe(self);
+    }
+}
+
+
 ```
+
+
+
+ 
