@@ -23,6 +23,7 @@ public sealed class TopicState
 
 public sealed class TopicGrain : Grain, ITopicGrain
 {
+    private AtlasElementStata _lastMessage;
     private readonly HashSet<ISensorGrain> _subscribers = [];
     private readonly IState<TopicState> _state;
 
@@ -112,7 +113,16 @@ public sealed class SectorGrain : Grain, ISectorGrain
 
 
 ```
+Before
+When consumer dies: tell to producer
+When producer dies: notify to consumers
 
+Pub-Sub
+When consumer dies: nothing to do
+When producer dies: notify to topic
 
+Todo: include deletedDate in AtlasStateProjection
+All the consumers must include a IConsumeAtlasStateProjection
 
+Topic grain does not have to have a keep alive
  
