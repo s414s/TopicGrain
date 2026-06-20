@@ -125,4 +125,10 @@ Todo: include deletedDate in AtlasStateProjection
 All the consumers must include a IConsumeAtlasStateProjection
 
 Topic grain does not have to have a keep alive
+
+
+Make Checkpoints to resubscribe again. Hydrant with element X was updated manually and it overwriten the existing one
+
+
+make the create checkpoint idempotent not only with the creation date and run scripts for all the ccrrs
  
